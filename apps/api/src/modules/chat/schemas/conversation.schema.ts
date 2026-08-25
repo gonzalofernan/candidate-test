@@ -8,6 +8,9 @@ export class Conversation {
   @Prop({ type: Types.ObjectId, ref: 'Student', required: true })
   studentId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Course', required: false })
+  courseId?: Types.ObjectId;
+
   @Prop({ default: 'Nueva conversación' })
   title: string;
 

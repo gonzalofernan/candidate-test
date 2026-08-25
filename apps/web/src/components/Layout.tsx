@@ -64,11 +64,16 @@ const Container = styled.div`
 
 const Sidebar = styled.aside`
   width: 260px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   padding: var(--spacing-lg);
+  flex-shrink: 0;
 `;
 
 const Logo = styled.div`
@@ -127,8 +132,10 @@ const UserSection = styled.div`
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  margin-top: auto;
   padding-top: var(--spacing-lg);
   border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
 `;
 
 const Avatar = styled.div`

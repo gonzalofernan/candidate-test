@@ -14,9 +14,6 @@ export class StudentService {
     @InjectModel(Progress.name) private progressModel: Model<ProgressDocument>
   ) {}
 
-  /**
-   * ✅ IMPLEMENTADO - Obtiene los datos del dashboard
-   */
   async getDashboard(studentId: string) {
     const student = await this.studentModel.findById(studentId).lean();
     if (!student) return null;
@@ -37,7 +34,6 @@ export class StudentService {
       0
     );
 
-    // Obtener cursos recientes (últimos 3 accedidos)
     const recentProgress = await this.progressModel
       .find({ studentId: new Types.ObjectId(studentId) })
       .sort({ lastAccessedAt: -1 })
@@ -70,18 +66,13 @@ export class StudentService {
     };
   }
 
-  /**
-   * ✅ IMPLEMENTADO - Obtiene cursos con progreso
-   */
   async getCoursesWithProgress(studentId: string) {
     const courses = await this.courseModel.find().lean();
     const progressRecords = await this.progressModel
       .find({ studentId: new Types.ObjectId(studentId) })
       .lean();
 
-    const progressMap = new Map(
-      progressRecords.map((p) => [p.courseId.toString(), p])
-    );
+    const progressMap = new Map(progressRecords.map((p) => [p.courseId.toString(), p]));
 
     return courses.map((course) => {
       const progress = progressMap.get(course._id.toString());
@@ -99,25 +90,94 @@ export class StudentService {
     });
   }
 
-  /**
-   * TODO: Implement detailed statistics
-   */
   async getDetailedStats(studentId: string) {
-    // TODO: El candidato debe implementar este método
-    throw new Error('Not implemented');
+    const student = await this.studentModel.findById(studentId).lean();
+    if (!student) return null;
+
+    const progressRecords = await this.progressModel
+      .find({ studentId: new Types.ObjectId(studentId) })
+      .populate('courseId')
+      .lean();
+
+    const totalTimeSpentMinutes = progressRecords.reduce(
+      (acc, progress) => acc + (progress.timeSpentMinutes || 0),
+      0
+    );
+    const completedCourses = progressRecords.filter(
+      (progress) => progress.progressPercentage === 100
+    ).length;
+    const inProgressCourses = progressRecords.filter(
+      (progress) =>
+        progress.progressPercentage > 0 && progress.progressPercentage < 100
+    ).length;
+
+    const studyStreakDays = this.calculateStudyStreak(
+      progressRecords
+        .map((progress) => progress.lastAccessedAt)
+        .filter((value): value is Date => !!value)
+    );
+
+    const averageWeeklyProgress =
+      progressRecords.length > 0
+        ? Math.round(
+            progressRecords.reduce(
+              (acc, progress) => acc + progress.progressPercentage,
+              0
+            ) / progressRecords.length
+          )
+        : 0;
+
+    const timeByCategoryMap = new Map<
+      string,
+      { category: string; minutes: number; formatted: string }
+    >();
+
+    for (const progress of progressRecords) {
+      const category = (progress.courseId as any)?.category || 'Sin categoría';
+      const current = timeByCategoryMap.get(category) || {
+        category,
+        minutes: 0,
+        formatted: '0m',
+      };
+
+      current.minutes += progress.timeSpentMinutes || 0;
+      current.formatted = this.formatTime(current.minutes);
+      timeByCategoryMap.set(category, current);
+    }
+
+    return {
+      totalTimeSpentMinutes,
+      totalTimeSpentFormatted: this.formatTime(totalTimeSpentMinutes),
+      completedCourses,
+      inProgressCourses,
+      studyStreakDays,
+      averageWeeklyProgress,
+      timeByCategory: Array.from(timeByCategoryMap.values()).sort(
+        (a, b) => b.minutes - a.minutes
+      ),
+    };
   }
 
-  /**
-   * TODO: Implement preferences update
-   */
   async updatePreferences(studentId: string, dto: UpdatePreferencesDto) {
-    // TODO: El candidato debe implementar este método
-    throw new Error('Not implemented');
+    const student = await this.studentModel.findById(studentId);
+    if (!student) return null;
+
+    student.preferences = {
+      ...(student.preferences || {}),
+      ...dto,
+    };
+
+    await student.save();
+
+    return {
+      id: student._id,
+      name: student.name,
+      email: student.email,
+      avatar: student.avatar,
+      preferences: student.preferences,
+    };
   }
 
-  /**
-   * Helper para formatear tiempo
-   */
   private formatTime(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -125,10 +185,41 @@ export class StudentService {
     return `${hours}h ${mins}m`;
   }
 
-  /**
-   * Método auxiliar para buscar un estudiante por ID
-   */
   async findById(id: string) {
     return this.studentModel.findById(id).lean();
+  }
+
+  private calculateStudyStreak(accessDates: Date[]): number {
+    if (accessDates.length === 0) {
+      return 0;
+    }
+
+    const normalizedDays = Array.from(
+      new Set(
+        accessDates.map((date) => {
+          const normalized = new Date(date);
+          normalized.setHours(0, 0, 0, 0);
+          return normalized.getTime();
+        })
+      )
+    ).sort((a, b) => b - a);
+
+    let streak = 1;
+
+    for (let i = 1; i < normalizedDays.length; i++) {
+      const diffInDays =
+        (normalizedDays[i - 1] - normalizedDays[i]) / (1000 * 60 * 60 * 24);
+
+      if (diffInDays === 1) {
+        streak += 1;
+        continue;
+      }
+
+      if (diffInDays > 1) {
+        break;
+      }
+    }
+
+    return streak;
   }
 }

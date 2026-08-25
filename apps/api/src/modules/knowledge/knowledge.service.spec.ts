@@ -74,12 +74,57 @@ describe('KnowledgeService', () => {
     });
   });
 
-  /**
-   * TODO: El candidato debe implementar estos tests
-   */
-  it.todo('should create embeddings using OpenAI API');
-  it.todo('should index course content into chunks');
-  it.todo('should search for similar content');
-  it.todo('should filter search results by courseId');
-  it.todo('should return results sorted by similarity score');
+  it('should index course content into chunks', async () => {
+    jest.spyOn(service, 'createEmbedding').mockResolvedValue([0.1, 0.2, 0.3]);
+
+    const result = await service.indexCourseContent(
+      '507f1f77bcf86cd799439011',
+      'Primera frase. Segunda frase. Tercera frase.',
+      'test.pdf'
+    );
+
+    expect(mockKnowledgeChunkModel.deleteMany).toHaveBeenCalled();
+    expect(mockKnowledgeChunkModel.create).toHaveBeenCalled();
+    expect(result.chunksCreated).toBeGreaterThan(0);
+  });
+
+  it('should search for similar content and sort by similarity', async () => {
+    jest.spyOn(service, 'createEmbedding').mockResolvedValue([1, 0]);
+    mockKnowledgeChunkModel.find.mockReturnValue({
+      lean: jest.fn().mockResolvedValue([
+        {
+          content: 'match',
+          courseId: { toString: () => 'course-1' },
+          embedding: [1, 0],
+          metadata: {},
+        },
+        {
+          content: 'worse',
+          courseId: { toString: () => 'course-2' },
+          embedding: [0, 1],
+          metadata: {},
+        },
+      ]),
+    });
+
+    const result = await service.searchSimilar('query', { limit: 2 });
+
+    expect(result[0].content).toBe('match');
+    expect(result[0].score).toBeGreaterThan(result[1].score);
+  });
+
+  it('should filter search results by courseId', async () => {
+    jest.spyOn(service, 'createEmbedding').mockResolvedValue([1, 0]);
+    const lean = jest.fn().mockResolvedValue([]);
+    mockKnowledgeChunkModel.find.mockReturnValue({ lean });
+
+    await service.searchSimilar('query', {
+      courseId: '507f1f77bcf86cd799439011',
+      limit: 1,
+    });
+
+    expect(mockKnowledgeChunkModel.find).toHaveBeenCalledWith({
+      courseId: expect.anything(),
+    });
+  });
 });

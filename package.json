@@ -12,7 +12,8 @@
     "test:web": "nx test candidate-web",
     "test": "nx run-many --target=test --all",
     "lint": "nx run-many --target=lint --all",
-    "seed": "ts-node apps/api/src/seeds/seed.ts"
+    "seed": "ts-node apps/api/src/seeds/seed.ts",
+    "index:knowledge": "ts-node scripts/index-course-content.ts"
   },
   "dependencies": {
     "@nestjs/common": "10.2.0",
@@ -28,13 +29,15 @@
     "lucide-react": "^0.469.0",
     "mongoose": "^8.0.0",
     "openai": "^4.20.0",
+    "pdf-parse": "^2.4.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "6.11.2",
     "reflect-metadata": "^0.1.14",
+    "remark-gfm": "^4.0.1",
     "rxjs": "^7.8.0",
-    "styled-components": "5.3.6",
-    "zustand": "^4.5.4"
+    "styled-components": "5.3.6"
   },
   "devDependencies": {
     "@nestjs/schematics": "11.0.5",

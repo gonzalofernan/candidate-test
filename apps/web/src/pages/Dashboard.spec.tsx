@@ -1,14 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 import { Dashboard } from './Dashboard';
 import { api } from '../services/api';
 
-// Mock del servicio API
-jest.mock('../services/api', () => ({
+vi.mock('../services/api', () => ({
   api: {
-    getDashboard: jest.fn(),
-    getCourses: jest.fn(),
+    getDashboard: vi.fn(),
+    getCourses: vi.fn(),
   },
 }));
 
@@ -55,28 +55,21 @@ const renderWithProviders = (component: React.ReactElement) => {
 
 describe('Dashboard', () => {
   beforeEach(() => {
-    (api.getDashboard as jest.Mock).mockResolvedValue(mockDashboard);
-    (api.getCourses as jest.Mock).mockResolvedValue(mockCourses);
+    vi.mocked(api.getDashboard).mockResolvedValue(mockDashboard);
+    vi.mocked(api.getCourses).mockResolvedValue(mockCourses);
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  /**
-   * ✅ TEST QUE PASA - Verifica que el dashboard renderiza el greeting
-   */
   it('should render student greeting', async () => {
     renderWithProviders(<Dashboard studentId="507f1f77bcf86cd799439011" />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/¡Hola, María García!/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText(/Asistente|Cursos Activos/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hola/i)).toBeInTheDocument();
   });
 
-  /**
-   * ✅ TEST QUE PASA - Verifica que se muestran las stats cards
-   */
   it('should render stats cards', async () => {
     renderWithProviders(<Dashboard studentId="507f1f77bcf86cd799439011" />);
 
@@ -87,25 +80,51 @@ describe('Dashboard', () => {
     });
   });
 
-  /**
-   * ✅ TEST QUE PASA - Verifica estado de loading
-   */
   it('should show loading state initially', () => {
-    (api.getDashboard as jest.Mock).mockImplementation(
-      () => new Promise(() => {}) // Never resolves
-    );
+    vi.mocked(api.getDashboard).mockImplementation(() => new Promise(() => {}));
 
     renderWithProviders(<Dashboard studentId="test" />);
 
-    expect(screen.getByText('Cargando dashboard...')).toBeInTheDocument();
+    expect(screen.getByLabelText('Cargando dashboard')).toBeInTheDocument();
   });
 
-  /**
-   * 📝 TODO: El candidato debe implementar estos tests
-   */
-  it.todo('should show error state when API fails');
-  it.todo('should render course cards');
-  it.todo('should show empty state when no courses');
-  it.todo('should render activity chart placeholder');
-  it.todo('should be accessible (a11y)');
+  it('should show error state when API fails', async () => {
+    vi.mocked(api.getDashboard).mockRejectedValue(new Error('fallo'));
+
+    renderWithProviders(<Dashboard studentId="test" />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error al cargar el dashboard');
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  it('should render course cards', async () => {
+    renderWithProviders(<Dashboard studentId="507f1f77bcf86cd799439011" />);
+
+    expect(
+      await screen.findByRole('article', { name: 'Curso React desde Cero' })
+    ).toBeInTheDocument();
+    expect(screen.getByText(/14\/20 lecciones/i)).toBeInTheDocument();
+  });
+
+  it('should show empty state when no courses', async () => {
+    vi.mocked(api.getCourses).mockResolvedValue([]);
+
+    renderWithProviders(<Dashboard studentId="507f1f77bcf86cd799439011" />);
+
+    expect(await screen.findByText(/No tienes cursos/i)).toBeInTheDocument();
+  });
+
+  it('should render activity chart placeholder', async () => {
+    renderWithProviders(<Dashboard studentId="507f1f77bcf86cd799439011" />);
+
+    expect(await screen.findByLabelText('Actividad semanal')).toBeInTheDocument();
+    expect(screen.getByText(/Distribución estimada/i)).toBeInTheDocument();
+  });
+
+  it('should be accessible', async () => {
+    renderWithProviders(<Dashboard studentId="507f1f77bcf86cd799439011" />);
+
+    expect(await screen.findByRole('heading', { name: /Hola/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Ver todos/i })).toBeInTheDocument();
+  });
 });

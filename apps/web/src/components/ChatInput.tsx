@@ -1,5 +1,6 @@
-import { useState, KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, KeyboardEvent } from 'react';
 import styled from 'styled-components';
+import { Loader2, SendHorizonal } from 'lucide-react';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -7,57 +8,68 @@ interface ChatInputProps {
   placeholder?: string;
 }
 
-/**
- * 📝 TODO: El candidato debe completar este componente
- *
- * Funcionalidades a implementar:
- * 1. Enviar mensaje con Enter (Shift+Enter para nueva línea)
- * 2. Auto-resize del textarea según contenido
- * 3. Límite de caracteres con contador
- * 4. Estado de disabled mientras se envía
- * 5. Limpiar input después de enviar
- *
- * Bonus:
- * - Soporte para emojis
- * - Historial de mensajes con flechas arriba/abajo
- * - Indicador de caracteres restantes
- */
-export function ChatInput({ onSend, disabled = false, placeholder = 'Escribe tu mensaje...' }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  disabled = false,
+  placeholder = 'Escribe tu mensaje...',
+}: ChatInputProps) {
   const [message, setMessage] = useState('');
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const maxLength = 1000;
 
-  // TODO: Implementar manejo de teclas (Enter para enviar, Shift+Enter para nueva línea)
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  useEffect(() => {
+    const element = textAreaRef.current;
+    if (!element) {
+      return;
+    }
+
+    element.style.height = 'auto';
+    element.style.height = `${Math.min(element.scrollHeight, 120)}px`;
+  }, [message]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       handleSend();
     }
   };
 
   const handleSend = () => {
     const trimmed = message.trim();
-    if (trimmed && !disabled) {
-      onSend(trimmed);
-      setMessage('');
+    if (!trimmed || disabled) {
+      return;
     }
+
+    onSend(trimmed);
+    setMessage('');
   };
 
   return (
     <Container>
       <InputWrapper>
         <TextArea
+          ref={textAreaRef}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(event) => setMessage(event.target.value.slice(0, maxLength))}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
+          maxLength={maxLength}
+          aria-label="Mensaje del chat"
         />
-        {/* TODO: Añadir contador de caracteres */}
+        <CharacterCount $limitReached={message.length >= maxLength}>
+          {message.length}/{maxLength}
+        </CharacterCount>
       </InputWrapper>
 
-      <SendButton onClick={handleSend} disabled={disabled || !message.trim()}>
-        {/* TODO: Cambiar icono cuando está enviando */}
-        ➤
+      <SendButton
+        type="button"
+        onClick={handleSend}
+        disabled={disabled || !message.trim()}
+        aria-label={disabled ? 'Enviando mensaje' : 'Enviar mensaje'}
+      >
+        {disabled ? <Loader2 size={18} /> : <SendHorizonal size={18} />}
       </SendButton>
     </Container>
   );
@@ -78,7 +90,7 @@ const InputWrapper = styled.div`
 
 const TextArea = styled.textarea`
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md) 28px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: 14px;
@@ -97,8 +109,15 @@ const TextArea = styled.textarea`
     background: var(--color-background);
     cursor: not-allowed;
   }
+`;
 
-  /* TODO: Implementar auto-resize */
+const CharacterCount = styled.span<{ $limitReached: boolean }>`
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font-size: 11px;
+  color: ${(props) =>
+    props.$limitReached ? 'var(--color-error)' : 'var(--color-text-secondary)'};
 `;
 
 const SendButton = styled.button`
@@ -113,6 +132,23 @@ const SendButton = styled.button`
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  svg[data-lucide='loader-2'] {
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
   &:hover:not(:disabled) {
     background: var(--color-primary-dark);

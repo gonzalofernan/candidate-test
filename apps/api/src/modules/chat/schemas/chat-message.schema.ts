@@ -21,6 +21,8 @@ export class ChatMessage {
     tokensUsed?: number;
     model?: string;
     responseTime?: number;
+    relevantChunksCount?: number;
+    retrievedCourseId?: string;
   };
 }
 

@@ -11,20 +11,6 @@ interface CourseCardProps {
   completedLessons?: number;
 }
 
-/**
- * 📝 TODO: El candidato debe completar este componente
- *
- * Funcionalidades a implementar:
- * 1. Mostrar barra de progreso visual
- * 2. Mostrar estado del curso (no iniciado, en progreso, completado)
- * 3. Añadir animación hover
- * 4. Manejar click para navegar al curso
- * 5. Mostrar tiempo estimado restante
- *
- * Bonus:
- * - Añadir skeleton loading state
- * - Implementar lazy loading para la imagen
- */
 export function CourseCard({
   title,
   description,
@@ -34,11 +20,16 @@ export function CourseCard({
   totalLessons,
   completedLessons = 0,
 }: CourseCardProps) {
-  // TODO: Implementar lógica de estado del curso
   const status = progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : 'not-started';
+  const statusLabel =
+    status === 'completed'
+      ? 'Completado'
+      : status === 'in-progress'
+        ? 'En progreso'
+        : 'No iniciado';
 
   return (
-    <Card>
+    <Card role="article" aria-label={`Curso ${title}`}>
       <Thumbnail $url={thumbnail}>
         {!thumbnail && <ThumbnailPlaceholder><BookOpen size={48} /></ThumbnailPlaceholder>}
         <CategoryBadge>{category}</CategoryBadge>
@@ -48,18 +39,16 @@ export function CourseCard({
         <Title>{title}</Title>
         <Description>{description}</Description>
 
-        {/* TODO: Implementar barra de progreso */}
         <ProgressSection>
-          <ProgressBar>
+          <ProgressBar aria-label={`Progreso ${progress}%`}>
             <ProgressFill style={{ width: `${progress}%` }} />
           </ProgressBar>
           <ProgressText>
-            {completedLessons}/{totalLessons} lecciones • {progress}%
+            {completedLessons}/{totalLessons} lecciones • {progress}% • {statusLabel}
           </ProgressText>
         </ProgressSection>
 
-        {/* TODO: Implementar botón de acción según estado */}
-        <ActionButton $status={status}>
+        <ActionButton $status={status} type="button" aria-label={`${statusLabel}: ${title}`}>
           {status === 'completed' && 'Repasar'}
           {status === 'in-progress' && 'Continuar'}
           {status === 'not-started' && 'Comenzar'}
@@ -76,9 +65,10 @@ const Card = styled.div`
   border: 1px solid var(--color-border);
   transition: all 0.2s ease;
 
-  /* TODO: Implementar efectos hover */
   &:hover {
-    /* El candidato debe añadir efectos */
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
   }
 `;
 

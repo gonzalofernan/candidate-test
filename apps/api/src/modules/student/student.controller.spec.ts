@@ -34,9 +34,6 @@ describe('StudentController', () => {
   });
 
   describe('getDashboard', () => {
-    /**
-     * ✅ TEST QUE PASA - Verifica que el dashboard retorna datos correctamente
-     */
     it('should return dashboard data for valid student', async () => {
       const mockDashboard = {
         student: {
@@ -62,22 +59,14 @@ describe('StudentController', () => {
       expect(service.getDashboard).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
     });
 
-    /**
-     * ✅ TEST QUE PASA - Verifica que se lanza NotFoundException para estudiante inexistente
-     */
     it('should throw NotFoundException when student not found', async () => {
       mockStudentService.getDashboard.mockResolvedValue(null);
 
-      await expect(controller.getDashboard('invalid-id')).rejects.toThrow(
-        NotFoundException
-      );
+      await expect(controller.getDashboard('invalid-id')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('getCourses', () => {
-    /**
-     * ✅ TEST QUE PASA - Verifica que se obtienen cursos con progreso
-     */
     it('should return courses with progress', async () => {
       const mockCourses = [
         {
@@ -97,24 +86,67 @@ describe('StudentController', () => {
       const result = await controller.getCourses('507f1f77bcf86cd799439011');
 
       expect(result).toHaveLength(2);
-      expect(result[0].progress.progressPercentage).toBe(70);
+      expect(result[0].progress?.progressPercentage).toBe(70);
     });
   });
 
-  /**
-   * 📝 TODO: El candidato debe implementar estos tests
-   */
   describe('getStats', () => {
-    it.todo('should return detailed statistics for student');
-    it.todo('should calculate study streak correctly');
-    it.todo('should aggregate time by category');
-    it.todo('should handle student with no courses');
+    it('should return detailed statistics for student', async () => {
+      const mockStats = {
+        totalTimeSpentMinutes: 565,
+        totalTimeSpentFormatted: '9h 25m',
+        completedCourses: 1,
+        inProgressCourses: 2,
+        studyStreakDays: 2,
+        averageWeeklyProgress: 41,
+        timeByCategory: [{ category: 'Frontend', minutes: 280, formatted: '4h 40m' }],
+      };
+
+      mockStudentService.getDetailedStats.mockResolvedValue(mockStats);
+
+      const result = await controller.getStats('507f1f77bcf86cd799439011');
+
+      expect(result).toEqual(mockStats);
+      expect(service.getDetailedStats).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
+    });
+
+    it('should throw NotFoundException when stats student is missing', async () => {
+      mockStudentService.getDetailedStats.mockResolvedValue(null);
+
+      await expect(controller.getStats('missing')).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('updatePreferences', () => {
-    it.todo('should update student preferences');
-    it.todo('should merge partial preferences update');
-    it.todo('should validate theme value');
-    it.todo('should throw NotFoundException for invalid student');
+    it('should update student preferences', async () => {
+      const payload = { theme: 'dark' as const, notifications: false };
+      const updatedStudent = {
+        id: '507f1f77bcf86cd799439011',
+        name: 'María García',
+        email: 'maria@test.com',
+        preferences: payload,
+      };
+
+      mockStudentService.updatePreferences.mockResolvedValue(updatedStudent);
+
+      const result = await controller.updatePreferences(
+        '507f1f77bcf86cd799439011',
+        payload
+      );
+
+      expect(result).toEqual(updatedStudent);
+      expect(service.updatePreferences).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        payload
+      );
+    });
+
+    it('should throw NotFoundException for invalid student', async () => {
+      mockStudentService.updatePreferences.mockResolvedValue(null);
+
+      await expect(
+        controller.updatePreferences('missing', { theme: 'light' })
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 });

@@ -8,6 +8,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { KnowledgeService } from './knowledge.service';
@@ -17,22 +18,25 @@ import { KnowledgeService } from './knowledge.service';
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
 
-  /**
-   * TODO: Implement content indexing endpoint
-   */
   @Post('index')
   @ApiOperation({ summary: 'Indexar contenido de un curso' })
   @ApiResponse({ status: 201, description: 'Contenido indexado exitosamente' })
   async indexContent(
     @Body() body: { courseId: string; content: string; sourceFile?: string }
   ) {
-    // TODO: Implementar
-    throw new Error('Not implemented');
+    if (!body.courseId || !body.content) {
+      throw new BadRequestException('courseId y content son obligatorios');
+    }
+
+    // sourceFile permite distinguir reindexaciones por origen de contenido
+    // y reemplazar solo los chunks asociados a ese material.
+    return this.knowledgeService.indexCourseContent(
+      body.courseId,
+      body.content,
+      body.sourceFile || 'manual-input'
+    );
   }
 
-  /**
-   * TODO: Implement semantic search endpoint
-   */
   @Get('search')
   @ApiOperation({ summary: 'Buscar contenido similar' })
   @ApiResponse({ status: 200, description: 'Resultados de busqueda' })
@@ -41,22 +45,22 @@ export class KnowledgeController {
     @Query('courseId') courseId?: string,
     @Query('limit') limit?: number
   ) {
-    // TODO: Implementar
-    throw new Error('Not implemented');
+    if (!query) {
+      throw new BadRequestException('q es obligatorio');
+    }
+
+    return this.knowledgeService.searchSimilar(query, {
+      courseId,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
-  /**
-   * Obtener estadisticas de la base de conocimiento
-   */
   @Get('stats')
   @ApiOperation({ summary: 'Estadisticas de la base de conocimiento' })
   async getStats() {
     return this.knowledgeService.getStats();
   }
 
-  /**
-   * Eliminar chunks de un curso
-   */
   @Delete('course/:courseId')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Eliminar conocimiento de un curso' })

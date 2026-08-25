@@ -9,13 +9,22 @@ interface StatsCardProps {
   subtitle?: string;
 }
 
-/**
- * IMPLEMENTADO - Tarjeta de estadistica individual
- */
-export function StatsCard({ title, value, icon, color = 'var(--color-primary)', subtitle }: StatsCardProps) {
+export function StatsCard({
+  title,
+  value,
+  icon,
+  color = 'var(--color-primary)',
+  subtitle,
+}: StatsCardProps) {
   return (
-    <Card>
-      <IconWrapper $color={color}>{icon}</IconWrapper>
+    <Card role="article" aria-label={title}>
+      <IconWrapper
+        $color={color}
+        style={{ color, backgroundColor: `${color}15` }}
+        aria-hidden="true"
+      >
+        {icon}
+      </IconWrapper>
       <Content>
         <Title>{title}</Title>
         <Value>{value}</Value>
@@ -40,11 +49,9 @@ const IconWrapper = styled.div<{ $color: string }>`
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: ${(props) => props.$color}15;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => props.$color};
   flex-shrink: 0;
 
   svg {
